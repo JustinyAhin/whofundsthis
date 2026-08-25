@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import Seo from '$lib/components/seo.svelte';
 	import { getFundingResults } from '$lib/remote-functions/funding-search.remote';
 	import type { FunderMatch, FunderMatchSearchResult } from '$lib/server/funders/types';
 	import type { ScoreDimension } from '$lib/server/scoring/types';
@@ -118,14 +119,11 @@
 	);
 </script>
 
-<svelte:head>
-	<title>Funder evidence — Who Funds This?</title>
-	<meta name="robots" content="noindex, nofollow" />
-	<meta
-		name="description"
-		content="Historical awards and source evidence supporting this funder match."
-	/>
-</svelte:head>
+<Seo
+	title="Funder evidence — Who Funds This?"
+	description="Historical awards and source evidence supporting this funder match."
+	robots="noindex,nofollow"
+/>
 
 <div class="site-shell detail-shell">
 	<a class="back-link" href={resolve(resultsUrl)}>← Back to all funder matches</a>

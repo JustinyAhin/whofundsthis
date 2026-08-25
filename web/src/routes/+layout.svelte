@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asset, resolve } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import favicon from '$lib/assets/favicon.svg';
 	import '../styles.css';
 
@@ -8,22 +8,6 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<meta property="og:type" content="website" />
-	<meta property="og:site_name" content="Who Funds This?" />
-	<meta property="og:title" content="Who Funds This? — Find funders behind research like yours" />
-	<meta
-		property="og:description"
-		content="Find organizations that funded research like yours and inspect the award evidence behind every match."
-	/>
-	<meta property="og:image" content={asset('/og-image.png')} />
-	<meta property="og:image:width" content="1200" />
-	<meta property="og:image:height" content="630" />
-	<meta
-		property="og:image:alt"
-		content="Who Funds This? Historical funding evidence for your research"
-	/>
-	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content={asset('/og-image.png')} />
 </svelte:head>
 
 <header class="site-header">

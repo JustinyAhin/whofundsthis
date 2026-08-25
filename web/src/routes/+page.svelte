@@ -1,14 +1,21 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import SearchForm from '$lib/components/search-form.svelte';
+	import Seo from '$lib/components/seo.svelte';
+	import { SITE } from '$lib/site';
+
+	const structuredData = $derived({
+		'@context': 'https://schema.org',
+		'@type': 'WebApplication',
+		name: SITE.name,
+		url: page.url.origin,
+		description: SITE.defaultDescription,
+		applicationCategory: 'ResearchApplication',
+		operatingSystem: 'Web'
+	});
 </script>
 
-<svelte:head>
-	<title>Who Funds This? — Find funders behind research like yours</title>
-	<meta
-		name="description"
-		content="Find organizations that have funded research like yours, with matching awards, amounts, institutions, and source evidence."
-	/>
-</svelte:head>
+<Seo {structuredData} />
 
 <section class="hero">
 	<div class="site-shell hero-layout">

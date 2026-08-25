@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import type { ResolvedPathname } from '$app/types';
 	import SearchForm from '$lib/components/search-form.svelte';
+	import Seo from '$lib/components/seo.svelte';
 	import { getFundingResults } from '$lib/remote-functions/funding-search.remote';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 
@@ -102,16 +103,12 @@
 	};
 </script>
 
-<svelte:head>
-	<title
-		>{description ? `Funding matches for ${description}` : 'Funding search'} — Who Funds This?</title
-	>
-	<meta name="robots" content="noindex, nofollow" />
-	<meta
-		name="description"
-		content="Evidence-backed historical funder matches from OpenAlex awards."
-	/>
-</svelte:head>
+<Seo
+	title={`${description ? `Funding matches for ${description}` : 'Funding search'} — Who Funds This?`}
+	description="Evidence-backed historical funder matches from OpenAlex awards."
+	canonical="/results"
+	robots="noindex,nofollow"
+/>
 
 <section class="results-search">
 	<div class="site-shell">
