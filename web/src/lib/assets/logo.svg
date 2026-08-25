@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="252" height="44" viewBox="0 0 252 44" role="img" aria-labelledby="title">
+	<title id="title">Who Funds This?</title>
+	<rect x="1" y="1" width="42" height="42" rx="9" fill="#175cd3" />
+	<circle cx="19" cy="19" r="8.25" fill="none" stroke="#fff" stroke-width="3" />
+	<path d="m25.2 25.2 8.1 8.1" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="3" />
+	<circle cx="19" cy="19" r="2.8" fill="#f0a46b" />
+	<text x="56" y="29" fill="#111b2d" font-family="Avenir Next, Avenir, Segoe UI, Helvetica, Arial, sans-serif" font-size="21" font-weight="750" letter-spacing="-.45">Who Funds This?</text>
+</svg>

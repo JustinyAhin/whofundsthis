@@ -79,20 +79,9 @@ a {
 }
 
 .brand-mark {
-	display: grid;
 	width: 2rem;
 	height: 2rem;
-	place-items: center;
-	border-radius: 0.35rem;
-	background: var(--green);
-	color: white;
-	font-family: Georgia, serif;
-	font-size: 1.05rem;
-	transform: none;
-}
-
-.brand-mark span {
-	transform: none;
+	display: block;
 }
 
 .site-nav {

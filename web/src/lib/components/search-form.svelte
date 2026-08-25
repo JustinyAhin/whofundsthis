@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { countryOptions, findCountry, getCountryName } from '$lib/country-options';
+	import CountryCombobox from '$lib/components/country-combobox.svelte';
+	import FieldCombobox from '$lib/components/field-combobox.svelte';
 	import { startFundingSearch } from '$lib/remote-functions/funding-search.remote';
-	import { untrack } from 'svelte';
 
 	let {
 		description = '',
@@ -15,18 +15,6 @@
 		compact?: boolean;
 	} = $props();
 
-	let countryQuery = $state(untrack(() => getCountryName(countryCode)));
-
-	const handleCountryInput = (event: Event) => {
-		const input = event.currentTarget as HTMLInputElement;
-		const country = findCountry(input.value);
-		countryQuery = input.value;
-		countryCode = country?.code ?? '';
-		input.setCustomValidity(
-			input.value.trim() && !country ? 'Choose a country from the suggestions.' : ''
-		);
-	};
-
 	const fields = [
 		'Medicine',
 		'Agricultural and Biological Sciences',
@@ -39,6 +27,9 @@
 		'Immunology and Microbiology',
 		'Economics, Econometrics and Finance'
 	];
+
+	let countryOpen = $state(false);
+	let fieldOpen = $state(false);
 </script>
 
 <form {...startFundingSearch} class:compact class="search-form">
@@ -65,33 +56,26 @@
 			<label for={compact ? 'country-compact' : 'country'}
 				>Applicant country <span>Optional</span></label
 			>
-			<input
+			<CountryCombobox
 				id={compact ? 'country-compact' : 'country'}
-				list={compact ? 'country-options-compact' : 'country-options'}
-				value={countryQuery}
-				oninput={handleCountryInput}
-				placeholder="Any country"
-				autocomplete="off"
+				bind:value={countryCode}
+				bind:open={countryOpen}
+				onopen={() => (fieldOpen = false)}
 			/>
-			<input type="hidden" name="countryCode" value={countryCode} />
-			<datalist id={compact ? 'country-options-compact' : 'country-options'}>
-				{#each countryOptions as country (country.code)}
-					<option value={country.name}>{country.code}</option>
-				{/each}
-			</datalist>
 			{#each startFundingSearch.fields.countryCode.issues() ?? [] as issue (issue.message)}
 				<p class="field-error">{issue.message}</p>
 			{/each}
 		</div>
 
-		<div>
+		<div class="field-combobox">
 			<label for={compact ? 'field-compact' : 'field'}>Broad field <span>Optional</span></label>
-			<select id={compact ? 'field-compact' : 'field'} name="field" value={field}>
-				<option value="">Any field</option>
-				{#each fields as option (option)}
-					<option value={option}>{option}</option>
-				{/each}
-			</select>
+			<FieldCombobox
+				id={compact ? 'field-compact' : 'field'}
+				options={fields}
+				bind:value={field}
+				bind:open={fieldOpen}
+				onopen={() => (countryOpen = false)}
+			/>
 		</div>
 
 		<button type="submit" disabled={startFundingSearch.pending > 0}>
@@ -136,9 +120,7 @@
 		letter-spacing: 0.03em;
 	}
 
-	textarea,
-	select,
-	.country-combobox > input:not([type='hidden']) {
+	textarea {
 		width: 100%;
 		border: 1px solid var(--line-strong);
 		border-radius: 0.35rem;
@@ -159,15 +141,13 @@
 		resize: vertical;
 	}
 
-	select,
-	.country-combobox > input:not([type='hidden']) {
+	.country-combobox :global(input),
+	.field-combobox :global(input) {
 		height: 3rem;
 		padding: 0 0.85rem;
 	}
 
-	textarea:focus,
-	select:focus,
-	.country-combobox > input:not([type='hidden']):focus {
+	textarea:focus {
 		border-color: var(--green);
 		box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 13%, transparent);
 	}
