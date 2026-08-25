@@ -194,6 +194,24 @@
 									<li>{reason}</li>
 								{/each}
 							</ul>
+							{#if result.query.countryCode && funder.score.geographyEvidence.status === 'missing'}
+								<p>
+									Country evidence is unavailable for these awards; this is not evidence of
+									eligibility.
+								</p>
+							{:else if result.query.countryCode && funder.score.geographyEvidence.status === 'outside'}
+								<p>
+									Recorded award institutions are outside {result.query.countryCode}; eligibility is
+									unknown.
+								</p>
+							{:else if result.query.countryCode && funder.score.geographyEvidence.matchedAwardCount > 0}
+								<p>
+									{funder.score.geographyEvidence.matchedAwardCount} award{funder.score
+										.geographyEvidence.matchedAwardCount === 1
+										? ''
+										: 's'} include recorded institution evidence for {result.query.countryCode}.
+								</p>
+							{/if}
 						</section>
 
 						<section class="panel">

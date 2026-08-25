@@ -4,6 +4,26 @@ import type { FunderDimensionSummary, FunderMatch, FundingRange } from './types'
 
 const REPRESENTATIVE_AWARD_LIMIT = 3;
 const AGGREGATE_AWARD_LIMIT = 3;
+const TITLE_EVIDENCE_MAX_POINTS = 8;
+const STOP_WORDS = new Set([
+	'a',
+	'an',
+	'and',
+	'as',
+	'at',
+	'by',
+	'for',
+	'from',
+	'in',
+	'into',
+	'of',
+	'on',
+	'or',
+	'the',
+	'to',
+	'using',
+	'with'
+]);
 
 const unique = (values: (string | null | undefined)[]) => [
 	...new Set(values.filter((value): value is string => Boolean(value)))
@@ -11,6 +31,63 @@ const unique = (values: (string | null | undefined)[]) => [
 
 const average = (values: number[]) =>
 	values.length > 0 ? values.reduce((total, value) => total + value, 0) / values.length : 0;
+
+const tokenize = (value: string | null | undefined) =>
+	new Set(
+		(value ?? '')
+			.toLocaleLowerCase()
+			.normalize('NFKD')
+			.replace(/[\u0300-\u036f]/g, '')
+			.split(/[^a-z0-9]+/)
+			.filter((token) => token.length > 2 && !STOP_WORDS.has(token))
+	);
+
+const getTitleEvidence = ({
+	description,
+	bestAward
+}: {
+	description: string;
+	bestAward: ScoredAwardCandidate;
+}) => {
+	const queryTerms = tokenize(description);
+	const titleTerms = tokenize(bestAward.candidate.title);
+	const matchedTerms = [...queryTerms].filter((term) => titleTerms.has(term));
+	const score = queryTerms.size > 0 ? matchedTerms.length / queryTerms.size : 0;
+
+	return {
+		score,
+		contribution: score * TITLE_EVIDENCE_MAX_POINTS,
+		matchedTerms
+	};
+};
+
+const getGeographyEvidence = (awards: ScoredAwardCandidate[]) => {
+	const evaluatedAwards = awards.filter((award) => award.score.dimensions.geography.weight > 0);
+	const matchedAwardCount = evaluatedAwards.filter(
+		(award) => award.score.dimensions.geography.score === 1
+	).length;
+	const outsideAwardCount = evaluatedAwards.filter(
+		(award) => award.score.dimensions.geography.score === 0.25
+	).length;
+	const missingAwardCount = evaluatedAwards.length - matchedAwardCount - outsideAwardCount;
+	const status =
+		evaluatedAwards.length === 0
+			? 'not-requested'
+			: matchedAwardCount > 0 && outsideAwardCount > 0
+				? 'mixed'
+				: matchedAwardCount > 0
+					? 'matched'
+					: outsideAwardCount > 0
+						? 'outside'
+						: 'missing';
+
+	return {
+		status,
+		matchedAwardCount,
+		outsideAwardCount,
+		missingAwardCount
+	} as const;
+};
 
 const aggregateDimensions = (awards: ScoredAwardCandidate[]): FunderDimensionSummary => ({
 	textRelevance: average(awards.map((award) => award.score.dimensions.textRelevance.score)),
@@ -51,7 +128,13 @@ const aggregateFundingRanges = (awards: ScoredAwardCandidate[]): FundingRange[] 
 		.sort((left, right) => right.awardCount - left.awardCount);
 };
 
-const getWhyThisFunder = (awards: ScoredAwardCandidate[]) => {
+const getWhyThisFunder = ({
+	awards,
+	titleEvidence
+}: {
+	awards: ScoredAwardCandidate[];
+	titleEvidence: ReturnType<typeof getTitleEvidence>;
+}) => {
 	const bestAward = awards[0];
 	const dimensions = Object.entries(bestAward.score.dimensions)
 		.filter(
@@ -65,6 +148,12 @@ const getWhyThisFunder = (awards: ScoredAwardCandidate[]) => {
 		.sort((left, right) => right.score - left.score);
 	const reasons = unique(dimensions.slice(0, 2).map((dimension) => dimension.explanation));
 
+	if (titleEvidence.matchedTerms.length > 0) {
+		reasons.unshift(
+			`Best award title matches ${titleEvidence.matchedTerms.length} important research term${titleEvidence.matchedTerms.length === 1 ? '' : 's'}: ${titleEvidence.matchedTerms.join(', ')}.`
+		);
+	}
+
 	if (awards.length > 1) {
 		reasons.push(`${awards.length} distinct matching award records support this funder match.`);
 	}
@@ -76,7 +165,13 @@ const getWhyThisFunder = (awards: ScoredAwardCandidate[]) => {
 	return reasons.slice(0, 3);
 };
 
-const aggregateFunder = (awards: ScoredAwardCandidate[]): FunderMatch => {
+const aggregateFunder = ({
+	awards,
+	description
+}: {
+	awards: ScoredAwardCandidate[];
+	description: string;
+}): FunderMatch => {
 	const sortedAwards = [...awards].sort((left, right) => right.score.total - left.score.total);
 	const aggregateAwards = sortedAwards.slice(0, AGGREGATE_AWARD_LIMIT);
 	const bestCandidate = sortedAwards[0].candidate;
@@ -93,6 +188,9 @@ const aggregateFunder = (awards: ScoredAwardCandidate[]): FunderMatch => {
 		sortedAwards.flatMap(({ candidate }) => candidate.sources.map((source) => source.openAlexId))
 	);
 	const averageTopScore = average(aggregateAwards.map((award) => award.score.total));
+	const titleEvidence = getTitleEvidence({ description, bestAward: sortedAwards[0] });
+	const geographyEvidence = getGeographyEvidence(sortedAwards);
+	const evidenceScore = sortedAwards[0].score.total * 0.6 + averageTopScore * 0.4;
 
 	return {
 		id: funder.id,
@@ -100,8 +198,10 @@ const aggregateFunder = (awards: ScoredAwardCandidate[]): FunderMatch => {
 		doi: funder.doi,
 		doiUrl: funder.doiUrl,
 		score: {
-			total: Math.round(sortedAwards[0].score.total * 0.6 + averageTopScore * 0.4),
+			total: Math.min(100, Math.round(evidenceScore + titleEvidence.contribution)),
 			bestAward: sortedAwards[0].score.total,
+			titleEvidence,
+			geographyEvidence,
 			dimensions: aggregateDimensions(aggregateAwards)
 		},
 		matchingAwardCount: sortedAwards.length,
@@ -110,7 +210,7 @@ const aggregateFunder = (awards: ScoredAwardCandidate[]): FunderMatch => {
 			0
 		),
 		representativeAwards: sortedAwards.slice(0, REPRESENTATIVE_AWARD_LIMIT),
-		whyThisFunder: getWhyThisFunder(sortedAwards),
+		whyThisFunder: getWhyThisFunder({ awards: sortedAwards, titleEvidence }),
 		countries: unique(sortedAwards.flatMap(({ candidate }) => candidate.countryCodes)).sort(),
 		institutions: unique(
 			sortedAwards.flatMap(({ candidate }) =>
@@ -133,7 +233,13 @@ const aggregateFunder = (awards: ScoredAwardCandidate[]): FunderMatch => {
 	};
 };
 
-const aggregateFunders = (awards: ScoredAwardCandidate[]) => {
+const aggregateFunders = ({
+	awards,
+	description
+}: {
+	awards: ScoredAwardCandidate[];
+	description: string;
+}) => {
 	const awardsByFunder = new Map<string, ScoredAwardCandidate[]>();
 
 	for (const award of awards) {
@@ -144,8 +250,8 @@ const aggregateFunders = (awards: ScoredAwardCandidate[]) => {
 	}
 
 	return [...awardsByFunder.values()]
-		.map(aggregateFunder)
+		.map((awards) => aggregateFunder({ awards, description }))
 		.sort((left, right) => right.score.total - left.score.total);
 };
 
-export { aggregateFunders };
+export { aggregateFunders, getGeographyEvidence };

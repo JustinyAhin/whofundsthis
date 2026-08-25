@@ -3,21 +3,20 @@ import { createCombinedAwardCandidateSearchService } from '../src/lib/server/awa
 import { createAwardCandidateSearchService } from '../src/lib/server/awards/search-award-candidates';
 import { createSemanticAwardCandidateSearchService } from '../src/lib/server/awards/search-semantic-award-candidates';
 import { aggregateFunders } from '../src/lib/server/funders/aggregate-funders';
+import {
+	MIN_KEYWORD_CANDIDATES,
+	MIN_TOP_FUNDER_SCORE
+} from '../src/lib/server/funders/search-adaptive-funder-matches';
 import { createFunderMatchSearchService } from '../src/lib/server/funders/search-funder-matches';
 import type { FunderMatch, SearchFunderMatchesOptions } from '../src/lib/server/funders/types';
 import { createOpenAlexClient } from '../src/lib/server/openalex/client';
 import { createSemanticWorksClient } from '../src/lib/server/openalex/semantic-works-client';
 import { rankAwardCandidates } from '../src/lib/server/scoring/rank-award-candidates';
 
+import { CALIBRATION_CASES, type CalibrationCase } from './calibration-cases';
+
 const TOP_FUNDER_LIMIT = 5;
 const REQUEST_TIMEOUT_MS = 30_000;
-
-type CalibrationCase = {
-	id: string;
-	description: string;
-	countryCode: string;
-	field: string;
-};
 
 type RetrievalStage = {
 	id: string;
@@ -48,41 +47,43 @@ type CalibrationRun = {
 	error: string | null;
 };
 
-const CALIBRATION_CASES: CalibrationCase[] = [
-	{
-		id: 'pregnancy-malaria-vaccine',
-		description: 'pregnancy malaria vaccine',
-		countryCode: 'BJ',
-		field: 'Medicine'
-	},
-	{
-		id: 'climate-resilient-maize-farming',
-		description: 'climate resilient maize farming',
-		countryCode: 'NG',
-		field: 'Agricultural and Biological Sciences'
-	},
-	{
-		id: 'maternal-health-digital-interventions',
-		description: 'maternal health digital interventions',
-		countryCode: 'GH',
-		field: 'Medicine'
-	},
-	{
-		id: 'coastal-erosion-climate-adaptation',
-		description: 'coastal erosion climate adaptation',
-		countryCode: 'BJ',
-		field: 'Environmental Science'
-	},
-	{
-		id: 'machine-learning-crop-disease',
-		description: 'machine learning crop disease',
-		countryCode: 'KE',
-		field: 'Computer Science'
-	}
-];
+const createSharedFetch = ({ fetch: fetchRequest = globalThis.fetch } = {}) => {
+	const responses = new Map<string, Promise<Response>>();
 
-const createKeywordStrategy = (): CalibrationStrategy => {
-	const service = createFunderMatchSearchService();
+	return async (input: string | URL | Request, init?: RequestInit) => {
+		const request = new Request(input, init);
+
+		if (request.method !== 'GET') return fetchRequest(request);
+
+		const key = request.url;
+		let responsePromise = responses.get(key);
+
+		if (!responsePromise) {
+			responsePromise = fetchRequest(request).then(
+				(response) => {
+					if (!response.ok) responses.delete(key);
+					return response;
+				},
+				(error) => {
+					responses.delete(key);
+					throw error;
+				}
+			);
+			responses.set(key, responsePromise);
+		}
+
+		return (await responsePromise).clone();
+	};
+};
+
+const createKeywordStrategy = ({
+	fetch
+}: { fetch?: typeof globalThis.fetch } = {}): CalibrationStrategy => {
+	const service = createFunderMatchSearchService({
+		candidateSearchService: createAwardCandidateSearchService({
+			client: createOpenAlexClient({ fetch })
+		})
+	});
 
 	return {
 		id: 'keyword',
@@ -109,11 +110,15 @@ const createKeywordStrategy = (): CalibrationStrategy => {
 	};
 };
 
-const createCombinedStrategy = (): CalibrationStrategy => {
+const createCombinedStrategy = ({
+	fetch
+}: { fetch?: typeof globalThis.fetch } = {}): CalibrationStrategy => {
 	const service = createCombinedAwardCandidateSearchService({
-		keywordSearchService: createAwardCandidateSearchService({ client: createOpenAlexClient() }),
+		keywordSearchService: createAwardCandidateSearchService({
+			client: createOpenAlexClient({ fetch })
+		}),
 		semanticSearchService: createSemanticAwardCandidateSearchService({
-			client: createSemanticWorksClient()
+			client: createSemanticWorksClient({ fetch })
 		})
 	});
 
@@ -133,7 +138,10 @@ const createCombinedStrategy = (): CalibrationStrategy => {
 
 			return {
 				candidateCount: result.meta.candidateCount,
-				funders: aggregateFunders(rankedAwards),
+				funders: aggregateFunders({
+					awards: rankedAwards,
+					description: result.query.description
+				}),
 				retrieval: [
 					{
 						id: `awards-keyword:${result.retrieval.keyword.status}`,
@@ -161,6 +169,38 @@ const createCombinedStrategy = (): CalibrationStrategy => {
 	};
 };
 
+const createConditionalSemanticStrategy = ({
+	fetch
+}: {
+	fetch?: typeof globalThis.fetch;
+} = {}): CalibrationStrategy => {
+	const keywordStrategy = createKeywordStrategy({ fetch });
+	const combinedStrategy = createCombinedStrategy({ fetch });
+
+	return {
+		id: 'conditional-semantic',
+		label: 'Semantic retrieval only for sparse or weak keyword results',
+		search: async (options) => {
+			const keywordResult = await keywordStrategy.search(options);
+			const shouldUseSemantic =
+				keywordResult.candidateCount < MIN_KEYWORD_CANDIDATES ||
+				(keywordResult.funders[0]?.score.total ?? 0) < MIN_TOP_FUNDER_SCORE;
+
+			if (!shouldUseSemantic) {
+				return {
+					...keywordResult,
+					retrieval: keywordResult.retrieval.map((stage) => ({
+						...stage,
+						id: `${stage.id}:semantic-skipped`
+					}))
+				};
+			}
+
+			return combinedStrategy.search(options);
+		}
+	};
+};
+
 const formatNumber = (value: number) => new Intl.NumberFormat('en-US').format(value);
 
 const formatCost = (costUsd: number | null) =>
@@ -174,6 +214,33 @@ const formatFunder = (funder: FunderMatch, rank: number) =>
 		`evidence=${formatNumber(funder.evidenceRecordCount)}`,
 		`sources=${formatNumber(funder.sourceCount)}`
 	].join(' | ');
+
+const getDiscountedGain = (grades: number[]) =>
+	grades.reduce((total, grade, index) => total + (2 ** grade - 1) / Math.log2(index + 2), 0);
+
+const getRankingMetrics = ({
+	funders,
+	calibrationCase
+}: {
+	funders: FunderMatch[];
+	calibrationCase: CalibrationCase;
+}) => {
+	const rankedGrades = funders
+		.slice(0, TOP_FUNDER_LIMIT)
+		.map((funder) => calibrationCase.judgments[funder.id] ?? 0);
+	const idealGrades = Object.values(calibrationCase.judgments)
+		.toSorted((left, right) => right - left)
+		.slice(0, TOP_FUNDER_LIMIT);
+	const idealGain = getDiscountedGain(idealGrades);
+	const relevantCount = rankedGrades.filter((grade) => grade >= 2).length;
+
+	return {
+		ndcg: idealGain > 0 ? getDiscountedGain(rankedGrades) / idealGain : 0,
+		precision: relevantCount / TOP_FUNDER_LIMIT,
+		judged: rankedGrades.filter((grade) => grade > 0).length,
+		grades: rankedGrades
+	};
+};
 
 const formatRun = ({ calibrationCase, strategy, result, error }: CalibrationRun) => {
 	const lines = [
@@ -189,6 +256,10 @@ const formatRun = ({ calibrationCase, strategy, result, error }: CalibrationRun)
 	lines.push(
 		`summary candidates=${formatNumber(result.candidateCount)} funders=${formatNumber(result.funders.length)} cost=${formatCost(result.costUsd)}`
 	);
+	const metrics = getRankingMetrics({ funders: result.funders, calibrationCase });
+	lines.push(
+		`quality ndcg@${TOP_FUNDER_LIMIT}=${metrics.ndcg.toFixed(3)} precision@${TOP_FUNDER_LIMIT}=${metrics.precision.toFixed(3)} judged=${metrics.judged}/${TOP_FUNDER_LIMIT} grades=${metrics.grades.join(',')}`
+	);
 
 	for (const stage of result.retrieval) {
 		lines.push(
@@ -203,17 +274,19 @@ const formatRun = ({ calibrationCase, strategy, result, error }: CalibrationRun)
 		);
 	}
 
-	const rankedFunders = result.funders
-		.toSorted(
-			(left, right) =>
-				right.score.total - left.score.total ||
-				(left.name < right.name ? -1 : left.name > right.name ? 1 : 0)
-		)
-		.slice(0, TOP_FUNDER_LIMIT);
+	const rankedFunders = result.funders.slice(0, TOP_FUNDER_LIMIT);
 
 	lines.push(
 		...(rankedFunders.length > 0
-			? rankedFunders.map((funder, index) => formatFunder(funder, index + 1))
+			? rankedFunders.flatMap((funder, index) => [
+					formatFunder(funder, index + 1),
+					...funder.representativeAwards
+						.slice(0, 2)
+						.map(
+							(award) =>
+								`   award=${JSON.stringify(award.candidate.title ?? 'Untitled award')} score=${award.score.total} countries=${award.candidate.countryCodes.join(',') || 'unknown'}`
+						)
+				])
 			: ['ranked-funders=none'])
 	);
 
@@ -257,14 +330,46 @@ const runCalibration = async ({
 	return runs;
 };
 
+const formatStrategySummaries = (runs: CalibrationRun[]) => {
+	const strategyIds = [...new Set(runs.map((run) => run.strategy.id))];
+
+	return strategyIds.map((strategyId) => {
+		const strategyRuns = runs.filter(
+			(run) => run.strategy.id === strategyId && run.result !== null
+		);
+		const metrics = strategyRuns.map((run) =>
+			getRankingMetrics({ funders: run.result!.funders, calibrationCase: run.calibrationCase })
+		);
+		const knownCosts = strategyRuns
+			.map((run) => run.result!.costUsd)
+			.filter((cost): cost is number => cost !== null);
+		const average = (values: number[]) =>
+			values.length > 0 ? values.reduce((total, value) => total + value, 0) / values.length : 0;
+
+		return [
+			`strategy-summary=${strategyId}`,
+			`cases=${strategyRuns.length}/${CALIBRATION_CASES.length}`,
+			`mean-ndcg@${TOP_FUNDER_LIMIT}=${average(metrics.map((metric) => metric.ndcg)).toFixed(3)}`,
+			`mean-precision@${TOP_FUNDER_LIMIT}=${average(metrics.map((metric) => metric.precision)).toFixed(3)}`,
+			`total-cost=${knownCosts.length === strategyRuns.length ? formatCost(knownCosts.reduce((total, cost) => total + cost, 0)) : 'unknown'}`
+		].join(' ');
+	});
+};
+
 const main = async () => {
-	const strategies = [createKeywordStrategy(), createCombinedStrategy()];
+	const fetch = createSharedFetch();
+	const strategies = [
+		createKeywordStrategy({ fetch }),
+		createCombinedStrategy({ fetch }),
+		createConditionalSemanticStrategy({ fetch })
+	];
 	const runs = await runCalibration({ strategies });
 
 	console.log(
 		`Who Funds This? calibration | cases=${CALIBRATION_CASES.length} strategies=${strategies.length} top=${TOP_FUNDER_LIMIT}`
 	);
 	console.log(runs.map(formatRun).join('\n\n'));
+	console.log(`\n${formatStrategySummaries(runs).join('\n')}`);
 
 	if (runs.some((run) => run.error !== null)) {
 		process.exitCode = 1;
@@ -278,9 +383,13 @@ if (import.meta.main) {
 export {
 	CALIBRATION_CASES,
 	createCombinedStrategy,
+	createConditionalSemanticStrategy,
 	createKeywordStrategy,
+	createSharedFetch,
 	formatRun,
+	formatStrategySummaries,
 	runCalibration,
+	getRankingMetrics,
 	type CalibrationCase,
 	type CalibrationRun,
 	type CalibrationStrategy,

@@ -24,6 +24,17 @@ type FunderMatch = {
 	score: {
 		total: number;
 		bestAward: number;
+		titleEvidence: {
+			score: number;
+			contribution: number;
+			matchedTerms: string[];
+		};
+		geographyEvidence: {
+			status: 'not-requested' | 'matched' | 'mixed' | 'outside' | 'missing';
+			matchedAwardCount: number;
+			outsideAwardCount: number;
+			missingAwardCount: number;
+		};
 		dimensions: FunderDimensionSummary;
 	};
 	matchingAwardCount: number;
