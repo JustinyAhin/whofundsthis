@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { countryOptions, findCountry, getCountryName } from '$lib/country-options';
 	import { startFundingSearch } from '$lib/remote-functions/funding-search.remote';
+	import { untrack } from 'svelte';
 
 	let {
 		description = '',
@@ -13,27 +15,17 @@
 		compact?: boolean;
 	} = $props();
 
-	const countries = [
-		['BJ', 'Benin'],
-		['NG', 'Nigeria'],
-		['GH', 'Ghana'],
-		['KE', 'Kenya'],
-		['ZA', 'South Africa'],
-		['TZ', 'Tanzania'],
-		['UG', 'Uganda'],
-		['RW', 'Rwanda'],
-		['SN', 'Senegal'],
-		['CI', "Côte d'Ivoire"],
-		['CM', 'Cameroon'],
-		['ET', 'Ethiopia'],
-		['IN', 'India'],
-		['BR', 'Brazil'],
-		['GB', 'United Kingdom'],
-		['US', 'United States'],
-		['CA', 'Canada'],
-		['FR', 'France'],
-		['DE', 'Germany']
-	];
+	let countryQuery = $state(untrack(() => getCountryName(countryCode)));
+
+	const handleCountryInput = (event: Event) => {
+		const input = event.currentTarget as HTMLInputElement;
+		const country = findCountry(input.value);
+		countryQuery = input.value;
+		countryCode = country?.code ?? '';
+		input.setCustomValidity(
+			input.value.trim() && !country ? 'Choose a country from the suggestions.' : ''
+		);
+	};
 
 	const fields = [
 		'Medicine',
@@ -69,16 +61,24 @@
 	</div>
 
 	<div class="search-options">
-		<div>
+		<div class="country-combobox">
 			<label for={compact ? 'country-compact' : 'country'}
 				>Applicant country <span>Optional</span></label
 			>
-			<select id={compact ? 'country-compact' : 'country'} name="countryCode" value={countryCode}>
-				<option value="">Any country</option>
-				{#each countries as country (country[0])}
-					<option value={country[0]}>{country[1]}</option>
+			<input
+				id={compact ? 'country-compact' : 'country'}
+				list={compact ? 'country-options-compact' : 'country-options'}
+				value={countryQuery}
+				oninput={handleCountryInput}
+				placeholder="Any country"
+				autocomplete="off"
+			/>
+			<input type="hidden" name="countryCode" value={countryCode} />
+			<datalist id={compact ? 'country-options-compact' : 'country-options'}>
+				{#each countryOptions as country (country.code)}
+					<option value={country.name}>{country.code}</option>
 				{/each}
-			</select>
+			</datalist>
 			{#each startFundingSearch.fields.countryCode.issues() ?? [] as issue (issue.message)}
 				<p class="field-error">{issue.message}</p>
 			{/each}
@@ -137,7 +137,8 @@
 	}
 
 	textarea,
-	select {
+	select,
+	.country-combobox > input:not([type='hidden']) {
 		width: 100%;
 		border: 1px solid var(--line-strong);
 		border-radius: 0.75rem;
@@ -158,13 +159,15 @@
 		resize: vertical;
 	}
 
-	select {
+	select,
+	.country-combobox > input:not([type='hidden']) {
 		height: 3rem;
-		padding: 0 2.3rem 0 0.85rem;
+		padding: 0 0.85rem;
 	}
 
 	textarea:focus,
-	select:focus {
+	select:focus,
+	.country-combobox > input:not([type='hidden']):focus {
 		border-color: var(--green);
 		box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 13%, transparent);
 	}
