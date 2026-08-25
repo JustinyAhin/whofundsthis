@@ -1,6 +1,7 @@
 <script lang="ts">
 	import CountryCombobox from '$lib/components/country-combobox.svelte';
 	import FieldCombobox from '$lib/components/field-combobox.svelte';
+	import openAlexFields from '$lib/data/openalex-fields.json';
 	import { startFundingSearch } from '$lib/remote-functions/funding-search.remote';
 
 	let {
@@ -15,18 +16,7 @@
 		compact?: boolean;
 	} = $props();
 
-	const fields = [
-		'Medicine',
-		'Agricultural and Biological Sciences',
-		'Environmental Science',
-		'Computer Science',
-		'Social Sciences',
-		'Engineering',
-		'Earth and Planetary Sciences',
-		'Biochemistry, Genetics and Molecular Biology',
-		'Immunology and Microbiology',
-		'Economics, Econometrics and Finance'
-	];
+	const fields = openAlexFields.fields.map(({ displayName }) => displayName);
 
 	let countryOpen = $state(false);
 	let fieldOpen = $state(false);

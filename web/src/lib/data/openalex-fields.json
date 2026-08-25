@@ -1,0 +1,110 @@
+{
+	"source": "https://openalex.s3.amazonaws.com/data/jsonl/fields/manifest.json",
+	"snapshotDate": "2026-06-26",
+	"fields": [
+		{
+			"id": "11",
+			"displayName": "Agricultural and Biological Sciences"
+		},
+		{
+			"id": "12",
+			"displayName": "Arts and Humanities"
+		},
+		{
+			"id": "13",
+			"displayName": "Biochemistry, Genetics and Molecular Biology"
+		},
+		{
+			"id": "14",
+			"displayName": "Business, Management and Accounting"
+		},
+		{
+			"id": "15",
+			"displayName": "Chemical Engineering"
+		},
+		{
+			"id": "16",
+			"displayName": "Chemistry"
+		},
+		{
+			"id": "17",
+			"displayName": "Computer Science"
+		},
+		{
+			"id": "18",
+			"displayName": "Decision Sciences"
+		},
+		{
+			"id": "35",
+			"displayName": "Dentistry"
+		},
+		{
+			"id": "19",
+			"displayName": "Earth and Planetary Sciences"
+		},
+		{
+			"id": "20",
+			"displayName": "Economics, Econometrics and Finance"
+		},
+		{
+			"id": "21",
+			"displayName": "Energy"
+		},
+		{
+			"id": "22",
+			"displayName": "Engineering"
+		},
+		{
+			"id": "23",
+			"displayName": "Environmental Science"
+		},
+		{
+			"id": "36",
+			"displayName": "Health Professions"
+		},
+		{
+			"id": "24",
+			"displayName": "Immunology and Microbiology"
+		},
+		{
+			"id": "25",
+			"displayName": "Materials Science"
+		},
+		{
+			"id": "26",
+			"displayName": "Mathematics"
+		},
+		{
+			"id": "27",
+			"displayName": "Medicine"
+		},
+		{
+			"id": "28",
+			"displayName": "Neuroscience"
+		},
+		{
+			"id": "29",
+			"displayName": "Nursing"
+		},
+		{
+			"id": "30",
+			"displayName": "Pharmacology, Toxicology and Pharmaceutics"
+		},
+		{
+			"id": "31",
+			"displayName": "Physics and Astronomy"
+		},
+		{
+			"id": "32",
+			"displayName": "Psychology"
+		},
+		{
+			"id": "33",
+			"displayName": "Social Sciences"
+		},
+		{
+			"id": "34",
+			"displayName": "Veterinary"
+		}
+	]
+}
