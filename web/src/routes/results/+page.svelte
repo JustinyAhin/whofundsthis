@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import type { ResolvedPathname } from '$app/types';
 	import SearchForm from '$lib/components/search-form.svelte';
 	import { getFundingResults } from '$lib/remote-functions/funding-search.remote';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 
 	const description = $derived(page.url.searchParams.get('q')?.trim() ?? '');
 	const countryCode = $derived(page.url.searchParams.get('country')?.trim().toUpperCase() ?? '');
@@ -46,7 +48,13 @@
 			: `${formatter.format(minimum)}–${formatter.format(maximum)}`;
 	};
 
-	const formatAwardAmount = (amount: number | null, currency: string | null) => {
+	const formatAwardAmount = ({
+		amount,
+		currency
+	}: {
+		amount: number | null;
+		currency: string | null;
+	}) => {
 		if (amount === null || !currency) return 'Amount unavailable';
 
 		return new Intl.NumberFormat('en', {
@@ -83,6 +91,14 @@
 		Object.entries(dimensions)
 			.filter(([, dimension]) => dimension.weight > 0)
 			.map(([name, dimension]) => ({ name, label: dimensionLabels[name] ?? name, ...dimension }));
+
+	const getFunderDetailUrl = (funderId: string) => {
+		const search = new SvelteURLSearchParams({ q: description });
+		if (countryCode) search.set('country', countryCode);
+		if (field) search.set('field', field);
+
+		return `${resolve('/results/funders/[funderId]', { funderId })}?${search.toString()}` as ResolvedPathname;
+	};
 </script>
 
 <svelte:head>
@@ -175,7 +191,7 @@
 												? ''
 												: 's'}
 										</p>
-										<h2>{funder.name}</h2>
+										<h2><a href={getFunderDetailUrl(funder.id)}>{funder.name}</a></h2>
 									</div>
 									<div
 										class:strong-score={funder.score.total >= 75}
@@ -223,10 +239,10 @@
 												<div>
 													<strong>{award.candidate.title ?? 'Untitled award'}</strong>
 													<span>
-														{formatAwardAmount(
-															award.candidate.funding.amount,
-															award.candidate.funding.currency
-														)}
+														{formatAwardAmount({
+															amount: award.candidate.funding.amount,
+															currency: award.candidate.funding.currency
+														})}
 														· {formatYearRange({
 															minimum: award.candidate.period.startYear,
 															maximum: award.candidate.period.endYear
@@ -481,6 +497,17 @@
 		font-size: clamp(1.35rem, 3vw, 1.85rem);
 		font-weight: 500;
 		letter-spacing: -0.025em;
+	}
+
+	.funder-name h2 a {
+		color: inherit;
+		text-decoration-color: transparent;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 0.2em;
+	}
+
+	.funder-name h2 a:hover {
+		text-decoration-color: var(--green);
 	}
 
 	.total-score {
