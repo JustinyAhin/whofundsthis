@@ -9,6 +9,7 @@
 	const description = $derived(page.url.searchParams.get('q')?.trim() ?? '');
 	const countryCode = $derived(page.url.searchParams.get('country')?.trim().toUpperCase() ?? '');
 	const field = $derived(page.url.searchParams.get('field')?.trim() ?? '');
+	let visibleFunderCount = $state(10);
 	const resultQuery = $derived(
 		description
 			? getFundingResults({
@@ -181,7 +182,7 @@
 					</aside>
 
 					<div class="funder-list">
-						{#each result.funders as funder, index (funder.id)}
+						{#each result.funders.slice(0, visibleFunderCount) as funder, index (funder.id)}
 							<article class="funder-card">
 								<header class="funder-header">
 									<div class="rank">{String(index + 1).padStart(2, '0')}</div>
@@ -299,6 +300,15 @@
 								{/if}
 							</article>
 						{/each}
+						{#if visibleFunderCount < result.funders.length}
+							<button
+								class="show-more"
+								type="button"
+								onclick={() => (visibleFunderCount = result.funders.length)}
+							>
+								Show {result.funders.length - visibleFunderCount} more funders
+							</button>
+						{/if}
 					</div>
 				</div>
 			{/if}
@@ -317,16 +327,14 @@
 	.eyebrow {
 		margin: 0 0 0.7rem;
 		color: var(--green);
-		font-size: 0.69rem;
-		font-weight: 800;
-		letter-spacing: 0.13em;
-		text-transform: uppercase;
+		font-size: 0.82rem;
+		font-weight: 700;
 	}
 
 	.results-search {
 		border-bottom: 1px solid var(--line);
 		padding: 1.5rem 0 1.7rem;
-		background: color-mix(in srgb, var(--surface-muted) 45%, transparent);
+		background: white;
 	}
 
 	.results-shell {
@@ -348,10 +356,10 @@
 		max-width: 22ch;
 		margin: 0 0 0.75rem;
 		color: var(--ink-strong);
-		font-family: Georgia, serif;
-		font-size: clamp(2.2rem, 4.5vw, 4rem);
+		font-family: 'Iowan Old Style', Charter, Cambria, Georgia, serif;
+		font-size: clamp(2.2rem, 4vw, 3.5rem);
 		font-weight: 500;
-		letter-spacing: -0.04em;
+		letter-spacing: -0.035em;
 		line-height: 1.04;
 	}
 
@@ -367,11 +375,9 @@
 		display: grid;
 		gap: 0.45rem;
 		min-width: 13rem;
-		padding: 0.85rem 1rem;
-		border: 1px solid var(--line);
-		border-radius: 0.7rem;
-		background: color-mix(in srgb, var(--surface) 65%, transparent);
-		font-size: 0.75rem;
+		padding: 0.35rem 0 0.35rem 1.1rem;
+		border-left: 2px solid var(--line-strong);
+		font-size: 0.8rem;
 	}
 
 	.results-context span {
@@ -456,12 +462,30 @@
 		gap: 1.25rem;
 	}
 
+	.show-more {
+		width: 100%;
+		border: 1px solid var(--line-strong);
+		border-radius: 0.25rem;
+		padding: 0.9rem 1rem;
+		background: white;
+		color: var(--green);
+		font: inherit;
+		font-size: 0.85rem;
+		font-weight: 720;
+		cursor: pointer;
+	}
+
+	.show-more:hover {
+		border-color: var(--green);
+		background: var(--green-soft);
+	}
+
 	.funder-card {
 		overflow: hidden;
 		border: 1px solid var(--line);
-		border-radius: 1rem;
+		border-radius: 0.25rem;
 		background: var(--surface);
-		box-shadow: 0 8px 28px rgba(31, 45, 38, 0.045);
+		box-shadow: none;
 	}
 
 	.funder-header {
@@ -476,15 +500,15 @@
 		align-self: start;
 		padding-top: 0.15rem;
 		color: var(--gold);
-		font-family: Georgia, serif;
-		font-size: 0.8rem;
+		font-size: 0.82rem;
+		font-weight: 700;
 	}
 
 	.funder-name p,
 	.evidence-title {
 		margin: 0 0 0.3rem;
 		color: var(--ink-muted);
-		font-size: 0.66rem;
+		font-size: 0.75rem;
 		font-weight: 750;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
@@ -493,7 +517,7 @@
 	.funder-name h2 {
 		margin: 0;
 		color: var(--ink-strong);
-		font-family: Georgia, serif;
+		font-family: 'Iowan Old Style', Charter, Cambria, Georgia, serif;
 		font-size: clamp(1.35rem, 3vw, 1.85rem);
 		font-weight: 500;
 		letter-spacing: -0.025em;
@@ -514,20 +538,20 @@
 		display: flex;
 		align-items: baseline;
 		min-width: 4.7rem;
-		justify-content: center;
-		border-radius: 0.8rem;
-		padding: 0.65rem 0.55rem;
-		background: var(--gold-soft);
-		color: #725717;
+		justify-content: flex-end;
+		border-left: 3px solid var(--gold);
+		padding: 0.35rem 0 0.35rem 0.8rem;
+		color: var(--gold);
 	}
 
 	.total-score.strong-score {
-		background: var(--green-soft);
+		background: transparent;
+		border-left-color: var(--green);
 		color: var(--green-dark);
 	}
 
 	.total-score strong {
-		font-family: Georgia, serif;
+		font-family: 'Iowan Old Style', Charter, Cambria, Georgia, serif;
 		font-size: 1.55rem;
 	}
 
@@ -539,7 +563,7 @@
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
 		border-block: 1px solid var(--line);
-		background: #faf9f5;
+		background: #f7f9fc;
 	}
 
 	.funder-stats div {
@@ -559,7 +583,7 @@
 	.funder-stats span {
 		margin-bottom: 0.28rem;
 		color: var(--ink-muted);
-		font-size: 0.65rem;
+		font-size: 0.75rem;
 	}
 
 	.funder-stats strong {
@@ -639,10 +663,9 @@
 		min-width: 2.2rem;
 		height: 2.2rem;
 		place-items: center;
-		border: 1px solid var(--line-strong);
-		border-radius: 50%;
+		border-left: 2px solid var(--green);
 		color: var(--green);
-		font-family: Georgia, serif;
+		font-family: 'Iowan Old Style', Charter, Cambria, Georgia, serif;
 		font-size: 0.8rem;
 	}
 
@@ -674,7 +697,7 @@
 		grid-template-columns: 4.5rem 1fr 1.5rem;
 		gap: 0.5rem;
 		align-items: center;
-		font-size: 0.66rem;
+		font-size: 0.73rem;
 	}
 
 	.score-row > span {
@@ -721,17 +744,17 @@
 		gap: 0.4rem;
 		padding: 0.8rem 1.5rem;
 		border-top: 1px solid var(--line);
-		background: #faf9f5;
+		background: #f7f9fc;
 	}
 
 	.evidence-tags span {
 		max-width: 14rem;
 		overflow: hidden;
-		border: 1px solid var(--line);
-		border-radius: 999px;
+		border-radius: 0.2rem;
 		padding: 0.25rem 0.55rem;
+		background: var(--surface-muted);
 		color: var(--ink-muted);
-		font-size: 0.63rem;
+		font-size: 0.72rem;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}

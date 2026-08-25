@@ -123,7 +123,7 @@
 		justify-content: space-between;
 		margin-bottom: 0.48rem;
 		color: var(--ink-strong);
-		font-size: 0.78rem;
+		font-size: 0.8rem;
 		font-weight: 720;
 		letter-spacing: 0.045em;
 		text-transform: uppercase;
@@ -141,7 +141,7 @@
 	.country-combobox > input:not([type='hidden']) {
 		width: 100%;
 		border: 1px solid var(--line-strong);
-		border-radius: 0.75rem;
+		border-radius: 0.35rem;
 		background: var(--surface);
 		color: var(--ink-strong);
 		font: inherit;
@@ -182,7 +182,7 @@
 	button {
 		height: 3rem;
 		border: 0;
-		border-radius: 0.75rem;
+		border-radius: 0.35rem;
 		padding: 0 1.25rem;
 		background: var(--green);
 		color: white;
@@ -191,15 +191,15 @@
 		font-weight: 750;
 		white-space: nowrap;
 		cursor: pointer;
-		box-shadow: 0 7px 18px color-mix(in srgb, var(--green) 20%, transparent);
+		box-shadow: none;
 		transition:
 			background 140ms ease,
-			transform 140ms ease;
+			color 140ms ease;
 	}
 
 	button:hover:not(:disabled) {
 		background: var(--green-dark);
-		transform: translateY(-1px);
+		color: white;
 	}
 
 	button:disabled {

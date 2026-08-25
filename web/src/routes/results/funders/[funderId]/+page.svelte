@@ -262,7 +262,10 @@
 										</div>
 
 										{#if award.candidate.description}
-											<p class="award-description">{award.candidate.description}</p>
+											<details class="description-disclosure">
+												<summary>Read award description</summary>
+												<p class="award-description">{award.candidate.description}</p>
+											</details>
 										{/if}
 
 										<div class="award-dimensions">
@@ -424,10 +427,8 @@
 	.section-label {
 		margin: 0 0 0.65rem;
 		color: var(--green);
-		font-size: 0.68rem;
-		font-weight: 800;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
+		font-size: 0.8rem;
+		font-weight: 700;
 	}
 
 	.detail-heading {
@@ -443,10 +444,10 @@
 		max-width: 21ch;
 		margin: 0;
 		color: var(--ink-strong);
-		font-family: Georgia, serif;
-		font-size: clamp(2.4rem, 5vw, 4.8rem);
+		font-family: 'Iowan Old Style', Charter, Cambria, Georgia, serif;
+		font-size: clamp(2.4rem, 4.5vw, 4.25rem);
 		font-weight: 500;
-		letter-spacing: -0.045em;
+		letter-spacing: -0.035em;
 		line-height: 1;
 	}
 
@@ -463,20 +464,20 @@
 		grid-template-columns: auto auto;
 		align-items: baseline;
 		min-width: 8rem;
-		border-radius: 1rem;
-		padding: 1rem 1.15rem;
-		background: var(--gold-soft);
-		color: #725717;
+		border-left: 4px solid var(--gold);
+		padding: 0.6rem 0 0.6rem 1.2rem;
+		color: var(--gold);
 		text-align: center;
 	}
 
 	.total-score.strong-score {
-		background: var(--green-soft);
+		background: transparent;
+		border-left-color: var(--green);
 		color: var(--green-dark);
 	}
 
 	.total-score strong {
-		font-family: Georgia, serif;
+		font-family: 'Iowan Old Style', Charter, Cambria, Georgia, serif;
 		font-size: 2.2rem;
 	}
 
@@ -486,7 +487,7 @@
 
 	.total-score small {
 		grid-column: 1 / -1;
-		font-size: 0.62rem;
+		font-size: 0.72rem;
 		font-weight: 760;
 		letter-spacing: 0.07em;
 		text-transform: uppercase;
@@ -521,7 +522,7 @@
 
 	.summary-grid strong {
 		color: var(--ink-strong);
-		font-family: Georgia, serif;
+		font-family: 'Iowan Old Style', Charter, Cambria, Georgia, serif;
 		font-size: 1.2rem;
 		font-weight: 500;
 	}
@@ -546,9 +547,9 @@
 	.aside-panel,
 	.state-card {
 		border: 1px solid var(--line);
-		border-radius: 1rem;
+		border-radius: 0.25rem;
 		background: var(--surface);
-		box-shadow: 0 8px 28px rgba(31, 45, 38, 0.045);
+		box-shadow: none;
 	}
 
 	.panel {
@@ -581,7 +582,7 @@
 	.section-heading h2 {
 		margin: 0;
 		color: var(--ink-strong);
-		font-family: Georgia, serif;
+		font-family: 'Iowan Old Style', Charter, Cambria, Georgia, serif;
 		font-size: 1.65rem;
 		font-weight: 500;
 		letter-spacing: -0.025em;
@@ -591,7 +592,7 @@
 		max-width: 18rem;
 		margin: 0;
 		color: var(--ink-muted);
-		font-size: 0.72rem;
+		font-size: 0.78rem;
 		line-height: 1.5;
 		text-align: right;
 	}
@@ -655,16 +656,14 @@
 	.award-card > header p {
 		margin: 0 0 0.35rem;
 		color: var(--gold);
-		font-size: 0.64rem;
+		font-size: 0.76rem;
 		font-weight: 780;
-		letter-spacing: 0.09em;
-		text-transform: uppercase;
 	}
 
 	.award-card h3 {
 		margin: 0;
 		color: var(--ink-strong);
-		font-family: Georgia, serif;
+		font-family: 'Iowan Old Style', Charter, Cambria, Georgia, serif;
 		font-size: 1.35rem;
 		font-weight: 500;
 		letter-spacing: -0.02em;
@@ -674,7 +673,7 @@
 	.award-score {
 		height: fit-content;
 		border: 1px solid var(--line-strong);
-		border-radius: 999px;
+		border-radius: 0.2rem;
 		padding: 0.38rem 0.65rem;
 		color: var(--green);
 		font-size: 0.72rem;
@@ -694,25 +693,37 @@
 	.award-context span,
 	.tag-list span {
 		border: 1px solid var(--line);
-		border-radius: 999px;
+		border-radius: 0.2rem;
 		padding: 0.28rem 0.58rem;
 		color: var(--ink-muted);
-		font-size: 0.66rem;
+		font-size: 0.74rem;
 	}
 
 	.award-description {
 		margin: 0;
-		padding: 0 1.5rem 1.2rem;
+		padding: 0.8rem 1.5rem 1.2rem;
 		color: var(--ink-muted);
 		font-size: 0.8rem;
 		line-height: 1.65;
+	}
+
+	.description-disclosure {
+		border-top: 1px solid var(--line);
+	}
+
+	.description-disclosure summary {
+		padding: 0.9rem 1.5rem;
+		color: var(--green);
+		font-size: 0.78rem;
+		font-weight: 720;
+		cursor: pointer;
 	}
 
 	.award-dimensions {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		border-block: 1px solid var(--line);
-		background: #faf9f5;
+		background: #f7f9fc;
 	}
 
 	.award-dimensions > div {
@@ -730,7 +741,7 @@
 
 	.award-dimensions span,
 	.award-dimensions strong {
-		font-size: 0.7rem;
+		font-size: 0.76rem;
 	}
 
 	.award-dimensions span {
@@ -745,7 +756,7 @@
 		grid-column: 1 / -1;
 		margin: 0;
 		color: var(--ink-muted);
-		font-size: 0.67rem;
+		font-size: 0.73rem;
 		line-height: 1.45;
 	}
 
@@ -767,7 +778,7 @@
 	.provenance h4 {
 		margin: 0 0 0.7rem;
 		color: var(--ink-strong);
-		font-size: 0.72rem;
+		font-size: 0.78rem;
 		font-weight: 760;
 	}
 
@@ -784,7 +795,7 @@
 	.source-links a,
 	.external-funder-link {
 		color: var(--green);
-		font-size: 0.7rem;
+		font-size: 0.75rem;
 		font-weight: 720;
 		text-underline-offset: 0.2rem;
 	}
@@ -841,7 +852,7 @@
 	.aside-panel h2 {
 		margin: 0 0 0.8rem;
 		color: var(--ink-strong);
-		font-family: Georgia, serif;
+		font-family: 'Iowan Old Style', Charter, Cambria, Georgia, serif;
 		font-size: 1.1rem;
 		font-weight: 500;
 	}
@@ -849,7 +860,7 @@
 	.aside-panel h3 {
 		margin: 1rem 0 0.5rem;
 		color: var(--ink-muted);
-		font-size: 0.66rem;
+		font-size: 0.74rem;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
 	}
@@ -880,7 +891,7 @@
 	.aside-note,
 	.limitation-panel p {
 		color: var(--ink-muted);
-		font-size: 0.7rem;
+		font-size: 0.76rem;
 		line-height: 1.55;
 	}
 
