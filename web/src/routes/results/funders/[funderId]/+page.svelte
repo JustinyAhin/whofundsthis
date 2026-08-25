@@ -291,6 +291,13 @@
 											</details>
 										{/if}
 
+										{#if award.score.dimensions.textRelevance.evidence.length > 0}
+											<p class="matched-terms">
+												<strong>Matched terms from your description</strong>
+												<span>{award.score.dimensions.textRelevance.evidence.join(', ')}</span>
+											</p>
+										{/if}
+
 										<div class="award-dimensions">
 											{#each getScoreDimensions(award.score.dimensions) as dimension (dimension.name)}
 												<div>
@@ -750,6 +757,26 @@
 		cursor: pointer;
 	}
 
+	.matched-terms {
+		display: grid;
+		grid-template-columns: minmax(10rem, 0.35fr) minmax(0, 1fr);
+		gap: 0.75rem;
+		margin: 0;
+		border-top: 1px solid var(--line);
+		padding: 0.85rem 1.5rem;
+		font-size: 0.76rem;
+		line-height: 1.5;
+	}
+
+	.matched-terms strong {
+		color: var(--ink-strong);
+		font-weight: 720;
+	}
+
+	.matched-terms span {
+		color: var(--green);
+	}
+
 	.award-dimensions {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1082,6 +1109,11 @@
 
 		.award-dimensions {
 			grid-template-columns: 1fr;
+		}
+
+		.matched-terms {
+			grid-template-columns: 1fr;
+			gap: 0.25rem;
 		}
 
 		.award-dimensions > div {
