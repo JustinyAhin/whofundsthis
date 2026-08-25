@@ -6,15 +6,28 @@ The score ranks historical awards for one research description. It is an evidenc
 
 Every result must expose the component scores and their explanations. Missing geography stays neutral rather than being treated as evidence that a funder does not support a country.
 
+## Candidate retrieval
+
+Candidate discovery combines two OpenAlex paths before scoring:
+
+- Keyword search over awards retrieves records with direct textual overlap.
+- Semantic search over works finds conceptually related publications, then hydrates only their linked OpenAlex awards.
+
+The two ranked lists are fused with reciprocal-rank scores using an offset of 60. Raw OpenAlex keyword and semantic relevance values are not mixed because they use different, query-relative scales. Continuation records are deduplicated after fusion, and semantic work provenance remains attached to the combined retrieval result.
+
+Either path may fail independently. A semantic rate limit or an empty set of award-linked works falls back to keyword evidence; a keyword failure can still return hydrated semantic awards. The search fails only when both retrieval paths fail.
+
+This is request-time candidate retrieval, not a local OpenAlex index or vector database.
+
 ## Award dimensions
 
-| Dimension | Weight | Method |
-| --- | ---: | --- |
-| Text relevance | 40% | OpenAlex relevance, important-term overlap with available award text, and title overlap. |
-| Topic overlap | 20% | Best overlap with OpenAlex topic, subfield, field, and domain labels. |
-| Geography | 15% | Exact awarded-institution country match is positive; missing geography is neutral; known other geography is a weak negative. Omitted when no applicant country is supplied. |
-| Recency | 15% | Active awards score highest, followed by a gradual ten-year half-life with a historical floor. |
-| Metadata confidence | 10% | Coverage across 13 evidence fields, including funder, dates, topics, geography, outputs, provenance, and source URL. |
+| Dimension           | Weight | Method                                                                                                                                                                      |
+| ------------------- | -----: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Text relevance      |    40% | OpenAlex relevance, important-term overlap with available award text, and title overlap.                                                                                    |
+| Topic overlap       |    20% | Best overlap with OpenAlex topic, subfield, field, and domain labels.                                                                                                       |
+| Geography           |    15% | Exact awarded-institution country match is positive; missing geography is neutral; known other geography is a weak negative. Omitted when no applicant country is supplied. |
+| Recency             |    15% | Active awards score highest, followed by a gradual ten-year half-life with a historical floor.                                                                              |
+| Metadata confidence |    10% | Coverage across 13 evidence fields, including funder, dates, topics, geography, outputs, provenance, and source URL.                                                        |
 
 The active weights are renormalized when geography is omitted. Scores are rounded to a 0–100 value only after combining their unrounded dimensions.
 
@@ -40,6 +53,7 @@ The initial top-award range was 67–83 for strong matches across the five searc
 
 - OpenAlex relevance is relative to each result set and is normalized against the strongest retrieved award.
 - Keyword overlap does not understand synonyms or deeper semantic relationships.
+- Semantic retrieval inspects only the requested top works, and many works have no linked award, so it can legitimately add no candidates.
 - Institution country records describe historical award evidence, not applicant eligibility.
 - Amounts remain in their source currencies and are never added across currencies.
 - Metadata completeness affects confidence in the evidence, not the scientific quality of the work.

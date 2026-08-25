@@ -2,9 +2,12 @@ import { form, getRequestEvent, query } from '$app/server';
 import { error, redirect } from '@sveltejs/kit';
 import * as v from 'valibot';
 
+import { createCombinedAwardCandidateSearchService } from '$lib/server/awards/search-combined-award-candidates';
 import { createAwardCandidateSearchService } from '$lib/server/awards/search-award-candidates';
+import { createSemanticAwardCandidateSearchService } from '$lib/server/awards/search-semantic-award-candidates';
 import { createFunderMatchSearchService } from '$lib/server/funders/search-funder-matches';
 import { OpenAlexClientError, createOpenAlexClient } from '$lib/server/openalex/client';
+import { createSemanticWorksClient } from '$lib/server/openalex/semantic-works-client';
 
 const descriptionSchema = v.pipe(
 	v.string(),
@@ -47,7 +50,17 @@ const getFundingResults = query(
 			apiKey: env?.OPENALEX_API_KEY,
 			fetch: event.fetch
 		});
-		const candidateSearchService = createAwardCandidateSearchService({ client });
+		const keywordSearchService = createAwardCandidateSearchService({ client });
+		const semanticSearchService = createSemanticAwardCandidateSearchService({
+			client: createSemanticWorksClient({
+				apiKey: env?.OPENALEX_API_KEY,
+				fetch: event.fetch
+			})
+		});
+		const candidateSearchService = createCombinedAwardCandidateSearchService({
+			keywordSearchService,
+			semanticSearchService
+		});
 		const funderSearchService = createFunderMatchSearchService({ candidateSearchService });
 
 		try {
