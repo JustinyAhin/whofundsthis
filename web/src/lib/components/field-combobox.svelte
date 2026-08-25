@@ -18,6 +18,7 @@
 
 	const items = untrack(() => options.map((option) => ({ value: option, label: option })));
 	let searchValue = $state(untrack(() => value));
+	let inputElement = $state<HTMLInputElement | null>(null);
 
 	$effect(() => {
 		if (open) onopen?.();
@@ -35,6 +36,7 @@
 	const setValue = (nextValue: string) => {
 		value = nextValue;
 		searchValue = nextValue;
+		inputElement?.setCustomValidity('');
 	};
 
 	const handleInput = (event: Event & { currentTarget: HTMLInputElement }) => {
@@ -61,6 +63,7 @@
 	<div class="field-control">
 		<Combobox.Input
 			{id}
+			bind:ref={inputElement}
 			placeholder="Any field"
 			autocomplete="off"
 			onfocus={() => (open = true)}

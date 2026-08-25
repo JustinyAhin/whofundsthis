@@ -43,9 +43,10 @@
 
 	<div class="search-options">
 		<div class="country-combobox">
-			<label for={compact ? 'country-compact' : 'country'}
-				>Applicant country <span>Optional</span></label
-			>
+			<label for={compact ? 'country-compact' : 'country'}>
+				<span class="label-title">Applicant country</span>
+				<span class="label-note">Optional</span>
+			</label>
 			<CountryCombobox
 				id={compact ? 'country-compact' : 'country'}
 				bind:value={countryCode}
@@ -58,7 +59,10 @@
 		</div>
 
 		<div class="field-combobox">
-			<label for={compact ? 'field-compact' : 'field'}>Broad field <span>Optional</span></label>
+			<label for={compact ? 'field-compact' : 'field'}>
+				<span class="label-title">Broad field</span>
+				<span class="label-note">Optional</span>
+			</label>
 			<FieldCombobox
 				id={compact ? 'field-compact' : 'field'}
 				options={fields}
@@ -103,11 +107,23 @@
 		text-transform: uppercase;
 	}
 
-	label span {
+	.label-note {
 		color: var(--ink-muted);
 		font-size: 0.68rem;
 		font-weight: 600;
 		letter-spacing: 0.03em;
+	}
+
+	.search-options label {
+		display: grid;
+		min-height: 2.35rem;
+		align-content: start;
+		justify-content: start;
+		gap: 0.12rem;
+	}
+
+	.label-title {
+		white-space: nowrap;
 	}
 
 	textarea {

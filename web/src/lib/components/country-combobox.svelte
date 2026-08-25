@@ -17,6 +17,7 @@
 
 	const items = countryOptions.map((country) => ({ value: country.code, label: country.name }));
 	let searchValue = $state(untrack(() => getCountryName(value)));
+	let inputElement = $state<HTMLInputElement | null>(null);
 
 	$effect(() => {
 		if (open) onopen?.();
@@ -37,6 +38,7 @@
 	const setValue = (nextValue: string) => {
 		value = nextValue;
 		searchValue = getCountryName(nextValue);
+		inputElement?.setCustomValidity('');
 	};
 
 	const handleInput = (event: Event & { currentTarget: HTMLInputElement }) => {
@@ -61,6 +63,7 @@
 	<div class="country-control">
 		<Combobox.Input
 			{id}
+			bind:ref={inputElement}
 			placeholder="Any country"
 			autocomplete="off"
 			onfocus={() => (open = true)}
