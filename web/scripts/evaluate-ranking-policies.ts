@@ -5,10 +5,30 @@ import {
 } from './calibration-recorded-evidence';
 
 const TOP_FUNDER_LIMIT = 5;
+const STOP_WORDS = new Set([
+	'a',
+	'an',
+	'and',
+	'as',
+	'at',
+	'by',
+	'for',
+	'from',
+	'in',
+	'into',
+	'of',
+	'on',
+	'or',
+	'the',
+	'to',
+	'using',
+	'with'
+]);
 
 type RankingPolicy = {
 	titleWeight: number;
 	supportWeight: number;
+	titleLengthPivot?: number;
 };
 
 const tokenize = (value: string | null) =>
@@ -18,22 +38,29 @@ const tokenize = (value: string | null) =>
 			.normalize('NFKD')
 			.replace(/[\u0300-\u036f]/g, '')
 			.split(/[^a-z0-9]+/)
-			.filter((token) => token.length > 2)
+			.filter((token) => token.length > 2 && !STOP_WORDS.has(token))
 	);
 
 const getTitleOverlap = ({
 	description,
-	evidence
+	evidence,
+	titleLengthPivot
 }: {
 	description: string;
 	evidence: RecordedFunderEvidence;
+	titleLengthPivot?: number;
 }) => {
 	const queryTokens = tokenize(description);
 	const titleTokens = tokenize(evidence.bestAwardTitle);
+	const coverage =
+		queryTokens.size > 0
+			? [...queryTokens].filter((token) => titleTokens.has(token)).length / queryTokens.size
+			: 0;
+	const lengthPenalty = evidence.bestAwardTitle
+		? Math.min(1, (titleLengthPivot ?? Number.POSITIVE_INFINITY) / titleTokens.size)
+		: 1;
 
-	return queryTokens.size > 0
-		? [...queryTokens].filter((token) => titleTokens.has(token)).length / queryTokens.size
-		: 0;
+	return coverage * lengthPenalty;
 };
 
 const getDiscountedGain = (grades: number[]) =>
@@ -48,7 +75,11 @@ const rank = ({ caseId, policy }: { caseId: string; policy: RankingPolicy }) => 
 	return evidence.toSorted((left, right) => {
 		const score = (value: RecordedFunderEvidence) =>
 			value.score +
-			getTitleOverlap({ description: calibrationCase.description, evidence: value }) *
+			getTitleOverlap({
+				description: calibrationCase.description,
+				evidence: value,
+				titleLengthPivot: policy.titleLengthPivot
+			}) *
 				policy.titleWeight +
 			Math.min(4, Math.max(0, Math.log2(value.awardCount + 1) - 1) * policy.supportWeight);
 
@@ -106,6 +137,7 @@ const format = (result: (typeof results)[number]) =>
 	[
 		`title-weight=${result.policy.titleWeight}`,
 		`support-weight=${result.policy.supportWeight}`,
+		`title-length-pivot=${result.policy.titleLengthPivot ?? 'none'}`,
 		`mean-ndcg@${TOP_FUNDER_LIMIT}=${result.meanNdcg.toFixed(3)}`,
 		`cases=${result.ndcgByCase.map((value) => value.toFixed(3)).join(',')}`
 	].join(' ');
@@ -113,5 +145,22 @@ const format = (result: (typeof results)[number]) =>
 console.log(`baseline ${format(results[0])}`);
 console.log('Non-regressing improvements');
 console.log(accepted.length > 0 ? accepted.slice(0, 10).map(format).join('\n') : 'none');
+
+const currentPolicy = { titleWeight: 8, supportWeight: 0 };
+const currentNdcgByCase = caseIds.map((caseId) => getCaseNdcg({ caseId, policy: currentPolicy }));
+const lengthNormalizedResults = [12, 16, 24, 32, 48].map((titleLengthPivot) => {
+	const policy = { ...currentPolicy, titleLengthPivot };
+	const ndcgByCase = caseIds.map((caseId) => getCaseNdcg({ caseId, policy }));
+
+	return {
+		policy,
+		meanNdcg: ndcgByCase.reduce((total, value) => total + value, 0) / ndcgByCase.length,
+		ndcgByCase,
+		nonRegressing: ndcgByCase.every((value, index) => value >= currentNdcgByCase[index])
+	};
+});
+
+console.log('Title-length normalization against current title-weight=8');
+console.log(lengthNormalizedResults.map(format).join('\n'));
 
 if (accepted.length === 0) process.exitCode = 1;

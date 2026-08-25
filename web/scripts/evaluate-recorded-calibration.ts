@@ -53,7 +53,7 @@ const evaluate = ({
 const keyword = evaluate({ id: 'keyword', select: (run) => run.keyword });
 const combined = evaluate({ id: 'combined', select: (run) => run.combined });
 const candidates = [0, 5, 10, 15, 20, 25, 30, 40, 50];
-const scores = [0, 60, 65, 70, 75, 80];
+const scores = [0, 60, 65, 70, 72, 75, 80];
 const conditional = candidates.flatMap((candidateThreshold) =>
 	scores.map((scoreThreshold) =>
 		evaluate({

@@ -4,6 +4,7 @@ import { createAwardCandidateSearchService } from '../src/lib/server/awards/sear
 import { createSemanticAwardCandidateSearchService } from '../src/lib/server/awards/search-semantic-award-candidates';
 import { aggregateFunders } from '../src/lib/server/funders/aggregate-funders';
 import {
+	getTopFunderEvidenceScore,
 	MIN_KEYWORD_CANDIDATES,
 	MIN_TOP_FUNDER_SCORE
 } from '../src/lib/server/funders/search-adaptive-funder-matches';
@@ -14,9 +15,11 @@ import { createSemanticWorksClient } from '../src/lib/server/openalex/semantic-w
 import { rankAwardCandidates } from '../src/lib/server/scoring/rank-award-candidates';
 
 import { CALIBRATION_CASES, type CalibrationCase } from './calibration-cases';
+import { RANKING_REGRESSION_CASES } from './ranking-regression-cases';
 
 const TOP_FUNDER_LIMIT = 5;
 const REQUEST_TIMEOUT_MS = 30_000;
+const LIVE_CALIBRATION_CASES = [...CALIBRATION_CASES, ...RANKING_REGRESSION_CASES];
 
 type RetrievalStage = {
 	id: string;
@@ -184,7 +187,7 @@ const createConditionalSemanticStrategy = ({
 			const keywordResult = await keywordStrategy.search(options);
 			const shouldUseSemantic =
 				keywordResult.candidateCount < MIN_KEYWORD_CANDIDATES ||
-				(keywordResult.funders[0]?.score.total ?? 0) < MIN_TOP_FUNDER_SCORE;
+				getTopFunderEvidenceScore(keywordResult.funders) < MIN_TOP_FUNDER_SCORE;
 
 			if (!shouldUseSemantic) {
 				return {
@@ -297,7 +300,7 @@ const toErrorMessage = (error: unknown) =>
 	error instanceof Error ? error.message.replaceAll('"', "'") : String(error);
 
 const runCalibration = async ({
-	cases = CALIBRATION_CASES,
+	cases = LIVE_CALIBRATION_CASES,
 	strategies = [createKeywordStrategy()]
 }: {
 	cases?: CalibrationCase[];
@@ -332,6 +335,7 @@ const runCalibration = async ({
 
 const formatStrategySummaries = (runs: CalibrationRun[]) => {
 	const strategyIds = [...new Set(runs.map((run) => run.strategy.id))];
+	const caseCount = new Set(runs.map((run) => run.calibrationCase.id)).size;
 
 	return strategyIds.map((strategyId) => {
 		const strategyRuns = runs.filter(
@@ -348,7 +352,7 @@ const formatStrategySummaries = (runs: CalibrationRun[]) => {
 
 		return [
 			`strategy-summary=${strategyId}`,
-			`cases=${strategyRuns.length}/${CALIBRATION_CASES.length}`,
+			`cases=${strategyRuns.length}/${caseCount}`,
 			`mean-ndcg@${TOP_FUNDER_LIMIT}=${average(metrics.map((metric) => metric.ndcg)).toFixed(3)}`,
 			`mean-precision@${TOP_FUNDER_LIMIT}=${average(metrics.map((metric) => metric.precision)).toFixed(3)}`,
 			`total-cost=${knownCosts.length === strategyRuns.length ? formatCost(knownCosts.reduce((total, cost) => total + cost, 0)) : 'unknown'}`
@@ -366,7 +370,7 @@ const main = async () => {
 	const runs = await runCalibration({ strategies });
 
 	console.log(
-		`Who Funds This? calibration | cases=${CALIBRATION_CASES.length} strategies=${strategies.length} top=${TOP_FUNDER_LIMIT}`
+		`Who Funds This? calibration | cases=${LIVE_CALIBRATION_CASES.length} strategies=${strategies.length} top=${TOP_FUNDER_LIMIT}`
 	);
 	console.log(runs.map(formatRun).join('\n\n'));
 	console.log(`\n${formatStrategySummaries(runs).join('\n')}`);
@@ -382,6 +386,7 @@ if (import.meta.main) {
 
 export {
 	CALIBRATION_CASES,
+	LIVE_CALIBRATION_CASES,
 	createCombinedStrategy,
 	createConditionalSemanticStrategy,
 	createKeywordStrategy,

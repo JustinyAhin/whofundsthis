@@ -5,6 +5,7 @@ import type { FunderDimensionSummary, FunderMatch, FundingRange } from './types'
 const REPRESENTATIVE_AWARD_LIMIT = 3;
 const AGGREGATE_AWARD_LIMIT = 3;
 const TITLE_EVIDENCE_MAX_POINTS = 8;
+const TITLE_EVIDENCE_FULL_CREDIT_TERM_LIMIT = 24;
 const STOP_WORDS = new Set([
 	'a',
 	'an',
@@ -52,7 +53,12 @@ const getTitleEvidence = ({
 	const queryTerms = tokenize(description);
 	const titleTerms = tokenize(bestAward.candidate.title);
 	const matchedTerms = [...queryTerms].filter((term) => titleTerms.has(term));
-	const score = queryTerms.size > 0 ? matchedTerms.length / queryTerms.size : 0;
+	const coverage = queryTerms.size > 0 ? matchedTerms.length / queryTerms.size : 0;
+	const lengthPenalty =
+		titleTerms.size > TITLE_EVIDENCE_FULL_CREDIT_TERM_LIMIT
+			? TITLE_EVIDENCE_FULL_CREDIT_TERM_LIMIT / titleTerms.size
+			: 1;
+	const score = coverage * lengthPenalty;
 
 	return {
 		score,
@@ -254,4 +260,4 @@ const aggregateFunders = ({
 		.sort((left, right) => right.score.total - left.score.total);
 };
 
-export { aggregateFunders, getGeographyEvidence };
+export { aggregateFunders, getGeographyEvidence, getTitleEvidence };
