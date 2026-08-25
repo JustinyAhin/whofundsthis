@@ -284,16 +284,21 @@
 													<a
 														href={award.candidate.sources[0]?.landingPageUrl ??
 															award.candidate.openAlexUrl}
+														target="_blank"
 														rel="external noreferrer"
 													>
 														Original award source ↗
 													</a>
-													<a href={award.candidate.openAlexUrl} rel="external noreferrer"
-														>OpenAlex record ↗</a
+													<a
+														href={award.candidate.openAlexUrl}
+														target="_blank"
+														rel="external noreferrer">OpenAlex record ↗</a
 													>
 													{#if award.candidate.outputs[0]}
-														<a href={award.candidate.outputs[0].url} rel="external noreferrer"
-															>View linked output ↗</a
+														<a
+															href={award.candidate.outputs[0].url}
+															target="_blank"
+															rel="external noreferrer">View linked output ↗</a
 														>
 													{/if}
 												</div>

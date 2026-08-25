@@ -110,7 +110,7 @@
 				We keep currencies separate, avoid hard geographic exclusions, and link back to the
 				underlying record wherever possible.
 			</p>
-			<a href="https://help.openalex.org/data/awards/" rel="noreferrer">
+			<a href="https://help.openalex.org/data/awards/" target="_blank" rel="noreferrer">
 				Read the OpenAlex award documentation <span aria-hidden="true">↗</span>
 			</a>
 		</div>

@@ -29,8 +29,8 @@
 	<div class="site-shell site-footer-inner">
 		<p>Historical funding evidence for better research conversations.</p>
 		<p>
-			Award data from <a href="https://openalex.org" rel="noreferrer">OpenAlex</a>. A match is not a
-			statement of eligibility.
+			Award data from <a href="https://openalex.org" target="_blank" rel="noreferrer">OpenAlex</a>.
+			A match is not a statement of eligibility.
 		</p>
 	</div>
 </footer>

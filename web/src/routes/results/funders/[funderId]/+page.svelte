@@ -311,7 +311,9 @@
 												<ul>
 													{#each award.candidate.outputs as output (output.id)}
 														<li>
-															<a href={output.url} rel="external noreferrer">{output.id} ↗</a>
+															<a href={output.url} target="_blank" rel="external noreferrer"
+																>{output.id} ↗</a
+															>
 														</li>
 													{/each}
 												</ul>
@@ -330,9 +332,12 @@
 														<div class="source-links">
 															{#if source.landingPageUrl}<a
 																	href={source.landingPageUrl}
+																	target="_blank"
 																	rel="external noreferrer">Original source ↗</a
 																>{/if}
-															<a href={source.openAlexUrl} rel="external noreferrer">OpenAlex ↗</a>
+															<a href={source.openAlexUrl} target="_blank" rel="external noreferrer"
+																>OpenAlex ↗</a
+															>
 														</div>
 													</div>
 												{/each}
@@ -407,8 +412,11 @@
 						</section>
 
 						{#if funder.doiUrl}
-							<a class="external-funder-link" href={funder.doiUrl} rel="external noreferrer"
-								>View funder identifier ↗</a
+							<a
+								class="external-funder-link"
+								href={funder.doiUrl}
+								target="_blank"
+								rel="external noreferrer">View funder identifier ↗</a
 							>
 						{/if}
 					</aside>
