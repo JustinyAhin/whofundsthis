@@ -1,6 +1,6 @@
 import * as v from 'valibot';
 
-import { OpenAlexClientError } from './client';
+import { createOpenAlexRequestClient, type OpenAlexRequestClientOptions } from './request';
 import { openAlexAwardsPageSchema, type OpenAlexAwardsPage } from './schemas';
 import { semanticWorksPageSchema, type OpenAlexSemanticWorksPage } from './semantic-work-schemas';
 
@@ -10,10 +10,8 @@ const MAX_PAGE_SIZE = 100;
 const MAX_FILTER_IDS = 100;
 const SEMANTIC_WORK_SELECT = 'id,doi,title,publication_year,awards,relevance_score';
 
-type SemanticWorksClientOptions = {
-	apiKey?: string;
+type SemanticWorksClientOptions = OpenAlexRequestClientOptions & {
 	baseUrl?: string;
-	fetch?: typeof globalThis.fetch;
 };
 
 type SearchSemanticWorksOptions = {
@@ -50,12 +48,11 @@ const normalizeOpenAlexEntityId = (value: string) =>
 		.toUpperCase();
 
 const createSemanticWorksClient = ({
-	apiKey,
 	baseUrl = DEFAULT_BASE_URL,
-	fetch: fetchRequest = globalThis.fetch
+	...requestOptions
 }: SemanticWorksClientOptions = {}) => {
-	const normalizedApiKey = apiKey?.trim();
 	const apiUrl = new URL(baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+	const requestClient = createOpenAlexRequestClient(requestOptions);
 
 	const requestPage = async <T>({
 		url,
@@ -66,56 +63,7 @@ const createSemanticWorksClient = ({
 		schema: v.GenericSchema<unknown, T>;
 		signal?: AbortSignal;
 	}): Promise<T> => {
-		if (normalizedApiKey) {
-			url.searchParams.set('api_key', normalizedApiKey);
-		}
-
-		let response: Response;
-
-		try {
-			response = await fetchRequest(url, {
-				headers: { accept: 'application/json' },
-				signal
-			});
-		} catch (cause) {
-			throw new OpenAlexClientError({
-				message: 'OpenAlex request could not be completed.',
-				code: 'network_error',
-				cause
-			});
-		}
-
-		if (!response.ok) {
-			throw new OpenAlexClientError({
-				message: `OpenAlex request failed with status ${response.status}.`,
-				code: 'http_error',
-				status: response.status
-			});
-		}
-
-		let body: unknown;
-
-		try {
-			body = await response.json();
-		} catch (cause) {
-			throw new OpenAlexClientError({
-				message: 'OpenAlex returned invalid JSON.',
-				code: 'invalid_json',
-				cause
-			});
-		}
-
-		const result = v.safeParse(schema, body);
-
-		if (!result.success) {
-			throw new OpenAlexClientError({
-				message: `OpenAlex returned an unexpected response: ${v.summarize(result.issues)}`,
-				code: 'invalid_response',
-				cause: result.issues
-			});
-		}
-
-		return result.output;
+		return requestClient.requestJson({ url, schema, signal });
 	};
 
 	const searchSemanticWorks = async ({

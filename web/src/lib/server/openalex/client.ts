@@ -1,14 +1,17 @@
-import * as v from 'valibot';
+import {
+	OpenAlexClientError,
+	createOpenAlexRequestClient,
+	type OpenAlexClientErrorCode,
+	type OpenAlexRequestClientOptions
+} from './request';
 import { openAlexAwardsPageSchema, type OpenAlexAwardsPage } from './schemas';
 
 const DEFAULT_BASE_URL = 'https://api.openalex.org/';
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
 
-type OpenAlexClientOptions = {
-	apiKey?: string;
+type OpenAlexClientOptions = OpenAlexRequestClientOptions & {
 	baseUrl?: string;
-	fetch?: typeof globalThis.fetch;
 };
 
 type SearchAwardsOptions = {
@@ -17,30 +20,6 @@ type SearchAwardsOptions = {
 	perPage?: number;
 	signal?: AbortSignal;
 };
-
-type OpenAlexClientErrorCode = 'network_error' | 'http_error' | 'invalid_json' | 'invalid_response';
-
-class OpenAlexClientError extends Error {
-	readonly code: OpenAlexClientErrorCode;
-	readonly status?: number;
-
-	constructor({
-		message,
-		code,
-		status,
-		cause
-	}: {
-		message: string;
-		code: OpenAlexClientErrorCode;
-		status?: number;
-		cause?: unknown;
-	}) {
-		super(message, { cause });
-		this.name = 'OpenAlexClientError';
-		this.code = code;
-		this.status = status;
-	}
-}
 
 const assertPositiveInteger = ({
 	value,
@@ -58,11 +37,11 @@ const assertPositiveInteger = ({
 };
 
 const createOpenAlexClient = ({
-	apiKey,
 	baseUrl = DEFAULT_BASE_URL,
-	fetch: fetchRequest = globalThis.fetch
+	...requestOptions
 }: OpenAlexClientOptions = {}) => {
 	const awardsUrl = new URL('awards', baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+	const requestClient = createOpenAlexRequestClient(requestOptions);
 
 	const searchAwards = async ({
 		query,
@@ -84,56 +63,7 @@ const createOpenAlexClient = ({
 		url.searchParams.set('page', String(page));
 		url.searchParams.set('per_page', String(perPage));
 
-		if (apiKey) {
-			url.searchParams.set('api_key', apiKey);
-		}
-
-		let response: Response;
-
-		try {
-			response = await fetchRequest(url, {
-				headers: { accept: 'application/json' },
-				signal
-			});
-		} catch (cause) {
-			throw new OpenAlexClientError({
-				message: 'OpenAlex request could not be completed.',
-				code: 'network_error',
-				cause
-			});
-		}
-
-		if (!response.ok) {
-			throw new OpenAlexClientError({
-				message: `OpenAlex request failed with status ${response.status}.`,
-				code: 'http_error',
-				status: response.status
-			});
-		}
-
-		let body: unknown;
-
-		try {
-			body = await response.json();
-		} catch (cause) {
-			throw new OpenAlexClientError({
-				message: 'OpenAlex returned invalid JSON.',
-				code: 'invalid_json',
-				cause
-			});
-		}
-
-		const result = v.safeParse(openAlexAwardsPageSchema, body);
-
-		if (!result.success) {
-			throw new OpenAlexClientError({
-				message: `OpenAlex returned an unexpected response: ${v.summarize(result.issues)}`,
-				code: 'invalid_response',
-				cause: result.issues
-			});
-		}
-
-		return result.output;
+		return requestClient.requestJson({ url, schema: openAlexAwardsPageSchema, signal });
 	};
 
 	return { searchAwards };

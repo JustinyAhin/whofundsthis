@@ -35,7 +35,7 @@ Tell users not to paste confidential proposals. Do not store their text by defau
 - SvelteKit and TypeScript on Cloudflare Workers.
 - OpenAlex API for candidate retrieval and enrichment.
 - Server-side matching and aggregation.
-- Cache API responses before adding a database.
+- Cache validated OpenAlex responses for one hour using hashed keys that exclude raw query text and API keys. Retry only transient failures, with an eight-second timeout per attempt and at most three attempts.
 - Add persistence only when saved searches or reports require it.
 
 Do not embed or index all OpenAlex awards. Retrieve a small candidate set first and add semantic reranking only if OpenAlex relevance is insufficient.

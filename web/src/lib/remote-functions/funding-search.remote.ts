@@ -45,16 +45,22 @@ const getFundingResults = query(
 	fundingSearchSchema,
 	async ({ description, countryCode, field }) => {
 		const event = getRequestEvent();
-		const env = event.platform?.env;
+		const platform = event.platform;
+		const requestOptions = {
+			apiKey: platform?.env.OPENALEX_API_KEY,
+			cache: platform?.caches.default,
+			fetch: event.fetch,
+			waitUntil: platform
+				? (promise: Promise<unknown>) => platform.ctx.waitUntil(promise)
+				: undefined
+		};
 		const client = createOpenAlexClient({
-			apiKey: env?.OPENALEX_API_KEY,
-			fetch: event.fetch
+			...requestOptions
 		});
 		const keywordSearchService = createAwardCandidateSearchService({ client });
 		const semanticSearchService = createSemanticAwardCandidateSearchService({
 			client: createSemanticWorksClient({
-				apiKey: env?.OPENALEX_API_KEY,
-				fetch: event.fetch
+				...requestOptions
 			})
 		});
 		const candidateSearchService = createCombinedAwardCandidateSearchService({
