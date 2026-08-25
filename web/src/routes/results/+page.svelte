@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import type { ResolvedPathname } from '$app/types';
+	import { getAwardDisplay } from '$lib/award-display';
 	import SearchForm from '$lib/components/search-form.svelte';
 	import Seo from '$lib/components/seo.svelte';
 	import { getFundingResults } from '$lib/remote-functions/funding-search.remote';
@@ -250,10 +251,16 @@
 								<div class="award-evidence">
 									<p class="evidence-title">Representative award evidence</p>
 									{#each funder.representativeAwards as award (award.candidate.id)}
+										{@const awardDisplay = getAwardDisplay({
+											title: award.candidate.title,
+											description: award.candidate.description,
+											scheme: award.candidate.funding.scheme,
+											funderAwardId: award.candidate.funderAwardId
+										})}
 										<details>
 											<summary>
 												<div>
-													<strong>{award.candidate.title ?? 'Untitled award'}</strong>
+													<strong>{awardDisplay.title}</strong>
 													<span>
 														{formatAwardAmount({
 															amount: award.candidate.funding.amount,
@@ -268,8 +275,9 @@
 												<b>{award.score.total}</b>
 											</summary>
 											<div class="award-detail">
-												{#if award.candidate.description}
-													<p class="award-description">{award.candidate.description}</p>
+												{#if awardDisplay.description}
+													<p class="award-description-label">Award description</p>
+													<p class="award-description">{awardDisplay.description}</p>
 												{/if}
 												<div class="score-bars">
 													{#each getScoreDimensions(award.score.dimensions) as dimension (dimension.name)}
@@ -668,9 +676,14 @@
 	}
 
 	summary strong {
+		display: -webkit-box;
+		overflow: hidden;
 		color: var(--ink-strong);
 		font-size: 0.86rem;
 		font-weight: 690;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
 	}
 
 	summary span {
@@ -691,6 +704,15 @@
 
 	.award-detail {
 		padding: 0.25rem 0 1.15rem;
+	}
+
+	.award-description-label {
+		margin: 0 0 0.3rem;
+		color: var(--ink-strong);
+		font-size: 0.7rem;
+		font-weight: 760;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
 	}
 
 	.award-description {

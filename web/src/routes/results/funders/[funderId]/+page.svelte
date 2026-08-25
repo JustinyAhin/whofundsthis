@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { getAwardDisplay } from '$lib/award-display';
 	import Seo from '$lib/components/seo.svelte';
 	import { getFundingResults } from '$lib/remote-functions/funding-search.remote';
 	import type { FunderMatch, FunderMatchSearchResult } from '$lib/server/funders/types';
@@ -247,11 +248,17 @@
 
 							<div class="award-list">
 								{#each funder.representativeAwards as award, index (award.candidate.id)}
+									{@const awardDisplay = getAwardDisplay({
+										title: award.candidate.title,
+										description: award.candidate.description,
+										scheme: award.candidate.funding.scheme,
+										funderAwardId: award.candidate.funderAwardId
+									})}
 									<article class="award-card">
 										<header>
 											<div>
 												<p>Award {String(index + 1).padStart(2, '0')}</p>
-												<h3>{award.candidate.title ?? 'Untitled award'}</h3>
+												<h3>{awardDisplay.title}</h3>
 											</div>
 											<span class="award-score">{award.score.total}/100</span>
 										</header>
@@ -277,10 +284,10 @@
 												>{/if}
 										</div>
 
-										{#if award.candidate.description}
+										{#if awardDisplay.description}
 											<details class="description-disclosure">
 												<summary>Read award description</summary>
-												<p class="award-description">{award.candidate.description}</p>
+												<p class="award-description">{awardDisplay.description}</p>
 											</details>
 										{/if}
 
