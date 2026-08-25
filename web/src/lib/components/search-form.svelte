@@ -17,9 +17,43 @@
 	} = $props();
 
 	const fields = openAlexFields.fields.map(({ displayName }) => displayName);
+	const examples = [
+		{
+			description: 'A malaria vaccine that protects pregnant women in West Africa',
+			context: 'Description only',
+			countryCode: '',
+			field: ''
+		},
+		{
+			description: 'Community health workers improving maternal care in rural Benin',
+			context: 'Benin · Medicine',
+			countryCode: 'BJ',
+			field: 'Medicine'
+		},
+		{
+			description: 'Machine-learning tools to predict crop yields under climate stress',
+			context: 'Agricultural and Biological Sciences',
+			countryCode: '',
+			field: 'Agricultural and Biological Sciences'
+		}
+	];
 
 	let countryOpen = $state(false);
 	let fieldOpen = $state(false);
+	let textareaElement = $state<HTMLTextAreaElement | null>(null);
+	let loadedExample = $state('');
+	let optionsVersion = $state(0);
+
+	const loadExample = (example: (typeof examples)[number]) => {
+		description = example.description;
+		countryCode = example.countryCode;
+		field = example.field;
+		countryOpen = false;
+		fieldOpen = false;
+		optionsVersion += 1;
+		loadedExample = `Example loaded: ${example.description}`;
+		textareaElement?.focus();
+	};
 </script>
 
 <form {...startFundingSearch} class:compact class="search-form">
@@ -29,17 +63,43 @@
 		</label>
 		<textarea
 			id={compact ? 'research-description-compact' : 'research-description'}
+			bind:this={textareaElement}
+			bind:value={description}
 			name="description"
 			rows={compact ? 2 : 4}
 			maxlength="1000"
 			required
-			placeholder="e.g. A malaria vaccine that protects pregnant women in West Africa"
-			>{description}</textarea
-		>
+			placeholder="e.g. A malaria vaccine that protects pregnant women in West Africa"></textarea>
 		{#each startFundingSearch.fields.description.issues() ?? [] as issue (issue.message)}
 			<p class="field-error">{issue.message}</p>
 		{/each}
 	</div>
+
+	{#if !compact}
+		<div class="examples" aria-labelledby="example-heading">
+			<div class="examples-heading">
+				<strong id="example-heading">Try an example</strong>
+				<span>Click to fill the form</span>
+			</div>
+			<div class="example-list">
+				{#each examples as example (example.description)}
+					<button
+						type="button"
+						class="example"
+						onclick={() => loadExample(example)}
+						aria-label={`Fill the form with: ${example.description}. ${example.context}`}
+					>
+						<span>{example.description}</span>
+						<small>{example.context}</small>
+						<svg viewBox="0 0 20 20" aria-hidden="true">
+							<path d="M5 10h10m-4-4 4 4-4 4"></path>
+						</svg>
+					</button>
+				{/each}
+			</div>
+			<p class="visually-hidden" aria-live="polite">{loadedExample}</p>
+		</div>
+	{/if}
 
 	<div class="search-options">
 		<div class="country-combobox">
@@ -47,12 +107,14 @@
 				<span class="label-title">Applicant country</span>
 				<span class="label-note">Optional</span>
 			</label>
-			<CountryCombobox
-				id={compact ? 'country-compact' : 'country'}
-				bind:value={countryCode}
-				bind:open={countryOpen}
-				onopen={() => (fieldOpen = false)}
-			/>
+			{#key optionsVersion}
+				<CountryCombobox
+					id={compact ? 'country-compact' : 'country'}
+					bind:value={countryCode}
+					bind:open={countryOpen}
+					onopen={() => (fieldOpen = false)}
+				/>
+			{/key}
 			{#each startFundingSearch.fields.countryCode.issues() ?? [] as issue (issue.message)}
 				<p class="field-error">{issue.message}</p>
 			{/each}
@@ -63,16 +125,18 @@
 				<span class="label-title">Broad field</span>
 				<span class="label-note">Optional</span>
 			</label>
-			<FieldCombobox
-				id={compact ? 'field-compact' : 'field'}
-				options={fields}
-				bind:value={field}
-				bind:open={fieldOpen}
-				onopen={() => (countryOpen = false)}
-			/>
+			{#key optionsVersion}
+				<FieldCombobox
+					id={compact ? 'field-compact' : 'field'}
+					options={fields}
+					bind:value={field}
+					bind:open={fieldOpen}
+					onopen={() => (countryOpen = false)}
+				/>
+			{/key}
 		</div>
 
-		<button type="submit" disabled={startFundingSearch.pending > 0}>
+		<button class="submit-button" type="submit" disabled={startFundingSearch.pending > 0}>
 			{startFundingSearch.pending > 0
 				? 'Searching…'
 				: compact
@@ -122,6 +186,102 @@
 		gap: 0.12rem;
 	}
 
+	.examples {
+		border-top: 1px solid var(--line);
+	}
+
+	.examples-heading {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.75rem 0 0.55rem;
+	}
+
+	.examples-heading strong {
+		color: var(--ink-strong);
+		font-size: 0.78rem;
+		font-weight: 720;
+		letter-spacing: 0.045em;
+		text-transform: uppercase;
+	}
+
+	.examples-heading span {
+		color: var(--ink-muted);
+		font-size: 0.75rem;
+	}
+
+	.example-list {
+		border-block: 1px solid var(--line);
+	}
+
+	.example {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto 1rem;
+		gap: 0.75rem;
+		align-items: center;
+		width: 100%;
+		border: 0;
+		padding: 0.55rem 0.15rem;
+		background: transparent;
+		color: var(--ink);
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+		transition:
+			background 140ms ease,
+			color 140ms ease;
+	}
+
+	.example + .example {
+		border-top: 1px solid var(--line);
+	}
+
+	.example:hover,
+	.example:focus-visible {
+		background: color-mix(in srgb, var(--green-soft) 48%, transparent);
+		color: var(--green-dark);
+		outline: none;
+	}
+
+	.example:focus-visible {
+		box-shadow: inset 3px 0 0 var(--green);
+	}
+
+	.example > span {
+		overflow: hidden;
+		font-size: 0.82rem;
+		font-weight: 620;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.example small {
+		color: var(--ink-muted);
+		font-size: 0.72rem;
+		white-space: nowrap;
+	}
+
+	.example svg {
+		width: 1rem;
+		height: 1rem;
+		fill: none;
+		stroke: var(--green);
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		stroke-width: 1.6;
+	}
+
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+	}
+
 	.label-title {
 		white-space: nowrap;
 	}
@@ -165,7 +325,7 @@
 		gap: 0.8rem;
 	}
 
-	button {
+	.submit-button {
 		height: 3rem;
 		border: 0;
 		border-radius: 0.35rem;
@@ -183,12 +343,12 @@
 			color 140ms ease;
 	}
 
-	button:hover:not(:disabled) {
+	.submit-button:hover:not(:disabled) {
 		background: var(--green-dark);
 		color: white;
 	}
 
-	button:disabled {
+	.submit-button:disabled {
 		opacity: 0.62;
 		cursor: wait;
 	}
@@ -215,8 +375,28 @@
 			grid-template-columns: 1fr;
 		}
 
-		button {
+		.submit-button {
 			width: 100%;
+		}
+
+		.example {
+			grid-template-columns: minmax(0, 1fr) 1rem;
+			padding-block: 0.65rem;
+		}
+
+		.example > span {
+			overflow: visible;
+			white-space: normal;
+		}
+
+		.example small {
+			grid-column: 1;
+			grid-row: 2;
+		}
+
+		.example svg {
+			grid-column: 2;
+			grid-row: 1 / 3;
 		}
 	}
 </style>
