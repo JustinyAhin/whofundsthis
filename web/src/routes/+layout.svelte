@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import favicon from '$lib/assets/favicon.svg';
+	import { registerWebMcpTools } from '$lib/webmcp/register-webmcp-tools';
+	import { onMount } from 'svelte';
 	import '../styles.css';
 
 	let { children } = $props();
+
+	onMount(registerWebMcpTools);
 </script>
 
 <svelte:head>

@@ -1,42 +1,50 @@
-# sv
+# Who Funds This? web
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+SvelteKit application for finding organizations that previously funded similar research and
+inspecting the historical award evidence behind each match.
 
-## Creating a project
+## Development
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+Install dependencies and run the development server from this directory with Bun:
 
 ```sh
-# recreate this project
-bun x sv@0.17.0 create --template minimal --types ts --add prettier eslint sveltekit-adapter="adapter:cloudflare+cfTarget:workers" --install bun web
+bun install
+bun run dev
 ```
 
-## Developing
+The application uses the OpenAlex API. Copy the variable names from `.env.example` into your local
+environment and supply your own values. Do not commit local environment files.
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Verification
+
+Run the declared checks in this order:
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+bun run format
+bun run lint
+bun run test
+bun run check
+bun run build
 ```
 
-## Building
+## WebMCP
 
-To create a production version of your app:
+The application progressively registers one imperative WebMCP tool:
+`find_historical_funders`. It accepts a short, non-confidential research description and optional
+country and field, validates them with the same schema as the visible search form, and navigates to
+the existing evidence-backed results page.
 
-```sh
-npm run build
-```
+Browsers without WebMCP support ignore the integration. No polyfill or cross-origin tool exposure
+is used.
 
-You can preview the production build with `npm run preview`.
+To test locally in a compatible Chrome build:
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+1. Open `chrome://flags/#enable-webmcp-testing`, enable the flag, and relaunch Chrome.
+2. Run `bun run dev` and open the local site.
+3. Use a WebMCP tool inspector to confirm that `find_historical_funders` is registered.
+4. Invoke it with a non-confidential description and confirm that the current tab navigates to the
+   expected `/results` URL.
+
+Production use during Chrome's origin trial requires a token registered for the deployed origin.
+Do not add a placeholder or a token belonging to another origin. WebMCP remains an enhancement; the
+ordinary search form is the supported fallback and source of truth.

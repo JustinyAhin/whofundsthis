@@ -10,6 +10,7 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "wrangler types --env-file .env.example --check && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test": "bun test",
 		"calibrate": "bun scripts/calibrate-funding-search.ts",
 		"calibrate:joint": "bun --no-env-file scripts/evaluate-joint-policies.ts",
 		"calibrate:recorded": "bun scripts/evaluate-recorded-calibration.ts",
@@ -24,6 +25,7 @@
 		"@sveltejs/adapter-cloudflare": "^7.2.8",
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
+		"@types/bun": "^1.4.0",
 		"@types/node": "^24",
 		"eslint": "^10.4.1",
 		"eslint-config-prettier": "^10.1.8",
@@ -36,6 +38,7 @@
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.60.1",
 		"vite": "^8.0.16",
+		"webmcp-types": "0.1.5",
 		"wrangler": "^4.97.0"
 	},
 	"dependencies": {
